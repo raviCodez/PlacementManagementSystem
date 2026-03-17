@@ -6,6 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class PlacementManagementSystemApplication {
 
+	public PlacementManagementSystemApplication() {
+		super();
+	}
+
 	public static void main(String[] args) {
 		SpringApplication.run(PlacementManagementSystemApplication.class, args);
 	}
