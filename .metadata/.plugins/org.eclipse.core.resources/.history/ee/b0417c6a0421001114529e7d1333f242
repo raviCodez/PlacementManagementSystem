@@ -1,0 +1,88 @@
+package com.placement.Service;
+
+import com.placement.Entity.*;
+import com.placement.enums.Role;
+import com.placement.Repository.*;
+import com.placement.Security.CustomUserDetailsService;
+import com.placement.Security.JwtUtil;
+import com.placement.dto.Response.AuthResponse;
+import com.placement.dto.request.*;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final DepartmentRepository departmentRepository;
+    private final StudentProfileRepository studentProfileRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authManager;
+    private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService userDetailsService;
+
+    @Transactional
+    public AuthResponse register(RegisterRequest req) {
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new RuntimeException("Email already registered.");
+        }
+
+        Department department = null;
+        if (req.getDepartmentId() != null) {
+            department = departmentRepository.findById(req.getDepartmentId())
+                .orElseThrow(() -> new RuntimeException("Department not found."));
+        }
+
+        User user = User.builder()
+            .name(req.getName())
+            .email(req.getEmail())
+            .password(passwordEncoder.encode(req.getPassword()))
+            .role(req.getRole())
+            .department(department)
+            .isActive(true)
+            .build();
+
+        userRepository.save(user);
+
+        // Auto-create StudentProfile for students
+        if (req.getRole() == Role.STUDENT) {
+            StudentProfile profile = StudentProfile.builder()
+                .user(user)
+                .isPlaced(false)
+                .backlogCount(0)
+                .build();
+            studentProfileRepository.save(profile);
+        }
+
+        return buildAuthResponse(user);
+    }
+
+    public AuthResponse login(LoginRequest req) {
+        authManager.authenticate(
+            new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
+        );
+        User user = userRepository.findByEmail(req.getEmail())
+            .orElseThrow(() -> new RuntimeException("User not found."));
+
+        return buildAuthResponse(user);
+    }
+
+    private AuthResponse buildAuthResponse(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtUtil.generateToken(userDetails, user.getId(), user.getRole().name());
+
+        return AuthResponse.builder()
+            .token(token)
+            .email(user.getEmail())
+            .name(user.getName())
+            .role(user.getRole().name())
+            .userId(user.getId())
+            .build();
+    }
+}

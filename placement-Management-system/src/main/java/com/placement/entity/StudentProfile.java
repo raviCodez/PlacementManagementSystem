@@ -1,0 +1,65 @@
+package com.placement.entity;
+
+// ─────────────────────────────────────────
+// entity/StudentProfile.java
+// ─────────────────────────────────────────
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "student_profile")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class StudentProfile {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    @Column(name = "roll_number", unique = true, length = 50)
+    private String rollNumber;
+
+    @Column(length = 10)
+    private String section;
+
+    @Column(precision = 4, scale = 2)
+    private BigDecimal cgpa;
+
+    @Column(name = "marks_10th", precision = 5, scale = 2)
+    private BigDecimal marks10th;
+
+    @Column(name = "marks_12th", precision = 5, scale = 2)
+    private BigDecimal marks12th;
+
+    @Column(name = "backlog_count")
+    private Integer backlogCount = 0;
+
+    @Column(columnDefinition = "TEXT")
+    private String skills;
+
+    @Column(name = "resume_url", length = 500)
+    private String resumeUrl;
+
+    @Column(name = "is_placed")
+    private boolean isPlaced = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "placed_company_id")
+    private Company placedCompany;
+
+    @Column(name = "package_offered", precision = 10, scale = 2)
+    private BigDecimal packageOffered;
+
+    @Column(name = "graduation_year")
+    private Integer graduationYear;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+}

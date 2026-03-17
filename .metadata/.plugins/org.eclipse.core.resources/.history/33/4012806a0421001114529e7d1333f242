@@ -1,0 +1,215 @@
+package com.placement.Service;
+
+import com.placement.Entity.*;
+import com.placement.enums.CompanyStatus;
+import com.placement.Repository.*;
+import com.placement.dto.Response.CompanyResponse;
+import com.placement.dto.request.CompanyRequest;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class CompanyService {
+
+    private final CompanyRepository        companyRepository;
+    private final DepartmentRepository     departmentRepository;
+    private final ApplicationRepository    applicationRepository;
+    private final StudentProfileRepository studentProfileRepository;
+    private final NotificationService      notificationService;
+    private final UserRepository           userRepository;
+
+    // ── CREATE ────────────────────────────────────────────────────────────
+    @Transactional
+    public CompanyResponse addCompany(CompanyRequest req, Long createdByUserId) {
+
+        // 1. Fetch allowed departments by IDs from request
+        Set<Department> departments = new HashSet<>(
+            departmentRepository.findAllById(req.getAllowedDepartmentIds())
+        );
+
+        if (departments.size() != req.getAllowedDepartmentIds().size()) {
+            throw new RuntimeException(
+                "One or more department IDs are invalid.");
+        }
+
+        // 2. Fetch the creator (Admin or Placement Team member)
+        User createdBy = userRepository.findById(createdByUserId)
+            .orElseThrow(() -> new RuntimeException("Creator user not found."));
+
+        // 3. Build and save company entity
+        Company company = Company.builder()
+            .name(req.getName())
+            .description(req.getDescription())
+            .website(req.getWebsite())
+            .logoUrl(req.getLogoUrl())
+            .packageOffered(req.getPackageOffered())
+            .minimumCgpa(req.getMinimumCgpa())
+            .maxBacklogs(req.getMaxBacklogs())
+            .driveDate(req.getDriveDate())
+            .driveLocation(req.getDriveLocation())
+            .registrationDeadline(req.getRegistrationDeadline())
+            .jobRole(req.getJobRole())
+            .jobDescription(req.getJobDescription())
+            .status(req.getStatus() != null ? req.getStatus() : CompanyStatus.UPCOMING)
+            .allowedDepartments(departments)
+            .createdBy(createdBy)
+            .build();
+
+        Company saved = companyRepository.save(company);
+        log.info("Company created: {} (ID: {})", saved.getName(), saved.getId());
+
+        // 4. Auto-notify eligible students (Business Rule: notify on company add)
+        notificationService.notifyEligibleStudentsForNewDrive(saved);
+
+        return toResponse(saved);
+    }
+
+    // ── READ — Single ─────────────────────────────────────────────────────
+    public CompanyResponse getCompanyById(Long id) {
+        Company company = companyRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Company not found: " + id));
+        return toResponse(company);
+    }
+
+    // ── READ — All ────────────────────────────────────────────────────────
+    public List<CompanyResponse> getAllCompanies() {
+        return companyRepository.findAll()
+            .stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+    }
+
+    // ── READ — By Status ──────────────────────────────────────────────────
+    public List<CompanyResponse> getCompaniesByStatus(CompanyStatus status) {
+        return companyRepository.findByStatus(status)
+            .stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+    }
+
+    // ── READ — Eligible for Student ───────────────────────────────────────
+    public List<CompanyResponse> getEligibleCompaniesForStudent(Long studentId) {
+        StudentProfile profile = studentProfileRepository.findByUserId(studentId)
+            .orElseThrow(() -> new RuntimeException("Student profile not found."));
+
+        Long deptId = profile.getUser().getDepartment().getId();
+
+        List<Company> eligible = companyRepository
+            .findEligibleCompaniesForStudent(deptId, profile.getCgpa());
+
+        return eligible.stream()
+            .map(company -> {
+                CompanyResponse response = toResponse(company);
+                response.setEligible(true);   // Mark as eligible for this student
+                return response;
+            })
+            .collect(Collectors.toList());
+    }
+
+    // ── UPDATE ────────────────────────────────────────────────────────────
+    @Transactional
+    public CompanyResponse updateCompany(Long id, CompanyRequest req) {
+        Company company = companyRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Company not found: " + id));
+
+        // Only update non-null fields (partial update support)
+        if (req.getName()        != null) company.setName(req.getName());
+        if (req.getDescription() != null) company.setDescription(req.getDescription());
+        if (req.getWebsite()     != null) company.setWebsite(req.getWebsite());
+        if (req.getPackageOffered() != null)
+            company.setPackageOffered(req.getPackageOffered());
+        if (req.getMinimumCgpa() != null) company.setMinimumCgpa(req.getMinimumCgpa());
+        if (req.getMaxBacklogs() != null) company.setMaxBacklogs(req.getMaxBacklogs());
+        if (req.getDriveDate()   != null) company.setDriveDate(req.getDriveDate());
+        if (req.getDriveLocation() != null)
+            company.setDriveLocation(req.getDriveLocation());
+        if (req.getRegistrationDeadline() != null)
+            company.setRegistrationDeadline(req.getRegistrationDeadline());
+        if (req.getJobRole()     != null) company.setJobRole(req.getJobRole());
+        if (req.getJobDescription() != null)
+            company.setJobDescription(req.getJobDescription());
+        if (req.getStatus()      != null) company.setStatus(req.getStatus());
+
+        // Update allowed departments if provided
+        if (req.getAllowedDepartmentIds() != null
+                && !req.getAllowedDepartmentIds().isEmpty()) {
+            Set<Department> departments = new HashSet<>(
+                departmentRepository.findAllById(req.getAllowedDepartmentIds())
+            );
+            company.setAllowedDepartments(departments);
+        }
+
+        Company updated = companyRepository.save(company);
+        log.info("Company updated: {} (ID: {})", updated.getName(), updated.getId());
+        return toResponse(updated);
+    }
+
+    // ── DELETE ────────────────────────────────────────────────────────────
+    @Transactional
+    public void deleteCompany(Long id) {
+        if (!companyRepository.existsById(id)) {
+            throw new RuntimeException("Company not found: " + id);
+        }
+        companyRepository.deleteById(id);
+        log.info("Company deleted: ID {}", id);
+    }
+
+    // ── UPDATE STATUS ─────────────────────────────────────────────────────
+    @Transactional
+    public CompanyResponse updateStatus(Long id, CompanyStatus status) {
+        Company company = companyRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Company not found: " + id));
+        company.setStatus(status);
+        return toResponse(companyRepository.save(company));
+    }
+
+    // ── ENTITY → RESPONSE MAPPER ──────────────────────────────────────────
+    public CompanyResponse toResponse(Company company) {
+        // Collect allowed department names
+        List<String> deptNames = company.getAllowedDepartments()
+            .stream()
+            .map(Department::getName)
+            .collect(Collectors.toList());
+
+        // Fetch application stats
+        long totalApps    = applicationRepository.countByCompanyId(company.getId());
+        long shortlisted  = applicationRepository
+            .countByCompanyIdAndStatus(company.getId(),
+                com.placement.enums.ApplicationStatus.SHORTLISTED);
+        long selected     = applicationRepository
+            .countByCompanyIdAndStatus(company.getId(),
+                com.placement.enums.ApplicationStatus.SELECTED);
+
+        return CompanyResponse.builder()
+            .id(company.getId())
+            .name(company.getName())
+            .description(company.getDescription())
+            .website(company.getWebsite())
+            .logoUrl(company.getLogoUrl())
+            .packageOffered(company.getPackageOffered())
+            .minimumCgpa(company.getMinimumCgpa())
+            .maxBacklogs(company.getMaxBacklogs())
+            .driveDate(company.getDriveDate())
+            .driveLocation(company.getDriveLocation())
+            .registrationDeadline(company.getRegistrationDeadline())
+            .jobRole(company.getJobRole())
+            .jobDescription(company.getJobDescription())
+            .status(company.getStatus())
+            .allowedDepartments(deptNames)
+            .totalApplications(totalApps)
+            .shortlistedCount(shortlisted)
+            .selectedCount(selected)
+            .createdByName(company.getCreatedBy() != null
+                ? company.getCreatedBy().getName() : "System")
+            .createdAt(company.getCreatedAt())
+            .build();
+    }
+}

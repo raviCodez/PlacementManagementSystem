@@ -1,0 +1,23 @@
+package com.placement.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.placement.entity.Department;
+
+import java.util.Optional;
+import java.util.List;
+
+@Repository
+public interface DepartmentRepository extends JpaRepository<Department, Long> {
+
+    Optional<Department> findByCode(String code);
+
+    Optional<Department> findByName(String name);
+
+    boolean existsByCode(String code);
+
+    boolean existsByName(String name);
+
+    List<Department> findAllByOrderByNameAsc();
+}

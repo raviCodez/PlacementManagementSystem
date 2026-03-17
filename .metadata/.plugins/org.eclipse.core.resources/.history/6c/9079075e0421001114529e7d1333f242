@@ -1,0 +1,37 @@
+package com.placement.Dto.Response;
+
+
+import lombok.*;
+import java.util.List;
+import java.util.Map;
+
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+public class PlacementTeamDashboardResponse {
+
+    // ── Company Overview ──────────────────────
+    private long totalActiveCompanies;
+    private long totalUpcomingCompanies;
+    private long totalCompletedCompanies;
+
+    // ── Application Stats ─────────────────────
+    private long totalApplicationsReceived;
+    private long totalShortlisted;
+    private long totalSelected;
+    private long totalRejected;
+
+    // ── Per-Company Breakdown ─────────────────
+    // Map<CompanyName, ApplicationCount>
+    private Map<String, Long> applicationsPerCompany;
+
+    // Map<CompanyName, SelectedCount>
+    private Map<String, Long> selectedPerCompany;
+
+    // ── Recent Activity ───────────────────────
+    private List<CompanyResponse>      upcomingDrives;
+    private List<ApplicationResponse>  recentApplicationUpdates;
+    private List<FeedbackResponse>     recentFeedbacks;
+
+    // ── Quick Stats ───────────────────────────
+    private long studentsPlacedThisMonth;
+    private double overallSelectionRate;   // selected / total applied * 100
+}

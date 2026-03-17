@@ -1,0 +1,42 @@
+package com.placement.dto.Response;
+
+
+import com.placement.enums.CompanyStatus;
+import lombok.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+public class CompanyResponse {
+
+    private Long id;
+    private String name;
+    private String description;
+    private String website;
+    private String logoUrl;
+    private BigDecimal packageOffered;
+    private BigDecimal minimumCgpa;
+    private Integer maxBacklogs;
+    private LocalDate driveDate;
+    private String driveLocation;
+    private LocalDateTime registrationDeadline;
+    private String jobRole;
+    private String jobDescription;
+    private CompanyStatus status;
+
+    // Which departments can apply
+    private List<String> allowedDepartments;
+
+    // Stats (used in dashboards)
+    private long totalApplications;
+    private long shortlistedCount;
+    private long selectedCount;
+
+    // Eligibility flag (set per-student when used in student dashboard)
+    private boolean isEligible;
+
+    private String createdByName;
+    private LocalDateTime createdAt;
+}

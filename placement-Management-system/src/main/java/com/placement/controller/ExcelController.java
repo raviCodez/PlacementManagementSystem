@@ -1,0 +1,38 @@
+package com.placement.controller;
+
+import com.placement.dto.Response.ApiResponse;
+import com.placement.service.ExcelService;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/excel")
+@RequiredArgsConstructor
+public class ExcelController {
+
+    private final ExcelService excelService;
+
+    @PostMapping("/upload-students")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> uploadStudents(
+            @RequestParam("file") MultipartFile file) throws Exception {
+        return ResponseEntity.ok(
+            ApiResponse.success("Upload processed",
+                excelService.bulkUploadStudents(file)));
+    }
+
+    @PostMapping("/upload-results/{companyId}")
+    @PreAuthorize("hasAnyRole('ADMIN','PLACEMENT_TEAM')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> uploadResults(
+            @RequestParam("file") MultipartFile file,
+            @PathVariable Long companyId) throws Exception {
+        return ResponseEntity.ok(
+            ApiResponse.success("Results processed",
+                excelService.bulkUploadResults(file, companyId)));
+    }
+}

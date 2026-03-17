@@ -1,0 +1,56 @@
+package com.placement.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.placement.entity.PlacementRecord;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface PlacementRecordRepository extends JpaRepository<PlacementRecord, Long> {
+
+    // Check if a student already has a placement record
+    Optional<PlacementRecord> findByStudentId(Long studentId);
+
+    boolean existsByStudentId(Long studentId);
+
+    // All placements for a given company
+    List<PlacementRecord> findByCompanyId(Long companyId);
+
+    // Count placements per company (for analytics)
+    long countByCompanyId(Long companyId);
+
+    // Department-wise placement records
+    @Query("""
+        SELECT pr FROM PlacementRecord pr
+        WHERE pr.student.department.id = :deptId
+        ORDER BY pr.placedAt DESC
+        """)
+    List<PlacementRecord> findByDepartmentId(@Param("deptId") Long departmentId);
+
+    // Top hiring companies — returns [companyName, count] pairs
+    @Query("""
+        SELECT pr.company.name, COUNT(pr)
+        FROM PlacementRecord pr
+        GROUP BY pr.company.name
+        ORDER BY COUNT(pr) DESC
+        """)
+    List<Object[]> findTopHiringCompanies();
+
+    // Year-wise placement count (for analytics trends)
+    @Query("""
+        SELECT YEAR(pr.placedAt), COUNT(pr)
+        FROM PlacementRecord pr
+        GROUP BY YEAR(pr.placedAt)
+        ORDER BY YEAR(pr.placedAt) DESC
+        """)
+    List<Object[]> findYearWisePlacementCount();
+@Query("SELECT COUNT(pr) FROM PlacementRecord pr " +
+       "WHERE MONTH(pr.placedAt) = MONTH(CURRENT_DATE) " +
+       "AND YEAR(pr.placedAt) = YEAR(CURRENT_DATE)")
+long countPlacedThisMonth();
+}

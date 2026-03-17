@@ -1,0 +1,26 @@
+package com.placement.Dto.Response;
+
+
+import lombok.*;
+import java.math.BigDecimal;
+
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+public class StudentSummaryResponse {
+
+    private Long   userId;
+    private String name;
+    private String email;
+    private String rollNumber;
+    private String section;
+    private String departmentName;
+
+    private BigDecimal cgpa;
+    private Integer    backlogCount;
+    private String     skills;
+
+    private boolean    isPlaced;
+    private String     placedCompanyName;
+    private BigDecimal packageOffered;
+
+    private String resumeUrl;
+}

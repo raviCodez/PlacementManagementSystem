@@ -1,0 +1,249 @@
+package com.placement.Service;
+
+import com.placement.Dto.request.NotificationRequest;
+import com.placement.Dto.Response.NotificationResponse;
+import com.placement.Entity.*;
+import com.placement.enums.ApplicationStatus;
+import com.placement.enums.NotificationType;
+import com.placement.Repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class NotificationService {
+
+    private final NotificationRepository   notificationRepository;
+    private final UserRepository           userRepository;
+    private final StudentProfileRepository studentProfileRepository;
+    private final CompanyRepository        companyRepository;
+    private final EmailService             emailService;
+
+    // ── SEND MANUAL NOTIFICATION (Admin / Placement Team) ─────────────────
+    @Transactional
+    public void sendNotification(NotificationRequest req, Long senderId) {
+        User sender = userRepository.findById(senderId)
+            .orElseThrow(() -> new RuntimeException("Sender not found."));
+
+        // Case 1: Targeted to specific students
+        if (req.getRecipientIds() != null && !req.getRecipientIds().isEmpty()) {
+            req.getRecipientIds().forEach(recipientId -> {
+                User recipient = userRepository.findById(recipientId)
+                    .orElse(null);
+                if (recipient != null) {
+                    saveNotification(req, sender, recipient);
+                    // Also send email
+                    emailService.sendSimpleEmail(
+                        recipient.getEmail(),
+                        req.getTitle(),
+                        req.getMessage()
+                    );
+                }
+            });
+            return;
+        }
+
+        // Case 2: Department-scoped broadcast
+        if (req.getDepartmentId() != null) {
+            List<User> deptStudents = userRepository
+                .findStudentsByDepartment(req.getDepartmentId());
+            deptStudents.forEach(student -> {
+                saveNotification(req, sender, student);
+                emailService.sendSimpleEmail(
+                    student.getEmail(), req.getTitle(), req.getMessage());
+            });
+            return;
+        }
+
+        // Case 3: Full broadcast (recipient = null)
+        saveNotification(req, sender, null);
+        log.info("Broadcast notification sent: {}", req.getTitle());
+    }
+
+    // ── AUTO: NOTIFY ELIGIBLE STUDENTS WHEN COMPANY IS ADDED ──────────────
+    @Transactional
+    public void notifyEligibleStudentsForNewDrive(Company company) {
+        // Collect department IDs allowed for this company
+        List<Long> allowedDeptIds = company.getAllowedDepartments()
+            .stream()
+            .map(Department::getId)
+            .collect(Collectors.toList());
+
+        // Find eligible student profiles
+        List<StudentProfile> eligible = studentProfileRepository
+            .findEligibleStudents(
+                company.getMinimumCgpa(),
+                company.getMaxBacklogs(),
+                allowedDeptIds
+            );
+
+        String title   = "New Drive: " + company.getName();
+        String message = String.format(
+            "%s is visiting on %s. Package: %.1f LPA. " +
+            "Register before %s. Role: %s",
+            company.getName(),
+            company.getDriveDate(),
+            company.getPackageOffered(),
+            company.getRegistrationDeadline(),
+            company.getJobRole()
+        );
+
+        eligible.forEach(profile -> {
+            User student = profile.getUser();
+
+            // Save in-app notification
+            Notification notif = Notification.builder()
+                .title(title)
+                .message(message)
+                .type(NotificationType.COMPANY_DRIVE)
+                .recipient(student)
+                .company(company)
+                .isRead(false)
+                .build();
+            notificationRepository.save(notif);
+
+            // Send email asynchronously
+            emailService.sendCompanyDriveEmail(student.getEmail(), company);
+        });
+
+        log.info("Notified {} eligible students for company: {}",
+            eligible.size(), company.getName());
+    }
+
+    // ── AUTO: NOTIFY STUDENT WHEN APPLICATION STATUS CHANGES ──────────────
+    @Transactional
+    public void sendApplicationStatusNotification(Application application) {
+        User      student = application.getStudent();
+        Company   company = application.getCompany();
+        ApplicationStatus status = application.getStatus();
+
+        String title, message;
+        NotificationType type;
+
+        switch (status) {
+            case SHORTLISTED -> {
+                title   = "Shortlisted at " + company.getName() + "!";
+                message = "Congratulations! You have been shortlisted for "
+                        + company.getJobRole() + " at " + company.getName()
+                        + ". Stay tuned for further updates.";
+                type    = NotificationType.SHORTLISTED;
+                emailService.sendShortlistEmail(student.getEmail(), company);
+            }
+            case SELECTED -> {
+                title   = "Selected at " + company.getName() + "! 🎉";
+                message = "Congratulations! You have been selected for "
+                        + company.getJobRole() + " at " + company.getName()
+                        + ". Package: " + company.getPackageOffered() + " LPA.";
+                type    = NotificationType.SELECTED;
+                emailService.sendSelectionEmail(student.getEmail(), company);
+            }
+            case REJECTED -> {
+                title   = "Application Update — " + company.getName();
+                message = "Thank you for applying to " + company.getName()
+                        + ". Unfortunately, you were not selected this time. "
+                        + "Keep applying!";
+                type    = NotificationType.REJECTED;
+            }
+            default -> {
+                return; // APPLIED status — no notification needed
+            }
+        }
+
+        Notification notif = Notification.builder()
+            .title(title)
+            .message(message)
+            .type(type)
+            .recipient(student)
+            .company(company)
+            .isRead(false)
+            .build();
+
+        notificationRepository.save(notif);
+        log.info("Notification sent to {} for status: {}",
+            student.getEmail(), status);
+    }
+
+    // ── GET NOTIFICATIONS FOR A USER ──────────────────────────────────────
+    public List<NotificationResponse> getNotificationsForUser(Long userId) {
+        return notificationRepository.findForUser(userId)
+            .stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+    }
+
+    // ── MARK AS READ ──────────────────────────────────────────────────────
+    @Transactional
+    public void markAsRead(Long notificationId, Long userId) {
+        Notification notif = notificationRepository.findById(notificationId)
+            .orElseThrow(() -> new RuntimeException("Notification not found."));
+
+        // Security check — users can only mark their own notifications
+        if (notif.getRecipient() == null ||
+                !notif.getRecipient().getId().equals(userId)) {
+            throw new RuntimeException(
+                "Not authorized to mark this notification as read.");
+        }
+
+        notif.setRead(true);
+        notificationRepository.save(notif);
+    }
+
+    // ── PRIVATE HELPERS ───────────────────────────────────────────────────
+    private void saveNotification(NotificationRequest req,
+                                   User sender,
+                                   User recipient) {
+        Company company = null;
+        if (req.getCompanyId() != null) {
+            company = companyRepository.findById(req.getCompanyId()).orElse(null);
+        }
+
+        Notification notif = Notification.builder()
+            .title(req.getTitle())
+            .message(req.getMessage())
+            .type(req.getType())
+            .sender(sender)
+            .recipient(recipient)   // null = broadcast
+            .company(company)
+            .isRead(false)
+            .build();
+
+        notificationRepository.save(notif);
+    }
+
+    private NotificationResponse toResponse(Notification n) {
+        return NotificationResponse.builder()
+            .id(n.getId())
+            .title(n.getTitle())
+            .message(n.getMessage())
+            .type(n.getType())
+            .senderId(n.getSender()    != null ? n.getSender().getId()    : null)
+            .senderName(n.getSender() != null ? n.getSender().getName()   : "System")
+            .isBroadcast(n.getRecipient() == null)
+            .companyId(n.getCompany()  != null ? n.getCompany().getId()   : null)
+            .companyName(n.getCompany()!= null ? n.getCompany().getName() : null)
+            .isRead(n.isRead())
+            .createdAt(n.getCreatedAt())
+            .build();
+    }
+
+   @Transactional
+public void markAllAsRead(Long userId) {
+    List<Notification> unread = notificationRepository
+        .findForUser(userId)
+        .stream()
+        .filter(n -> !n.isRead()
+            && (n.getRecipient() == null
+                || n.getRecipient().getId().equals(userId)))
+        .collect(Collectors.toList());
+
+    unread.forEach(n -> n.setRead(true));
+    notificationRepository.saveAll(unread);
+}
+}
+

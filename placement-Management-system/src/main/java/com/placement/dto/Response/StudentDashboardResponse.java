@@ -1,0 +1,20 @@
+package com.placement.dto.Response;
+
+import lombok.*;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+public class StudentDashboardResponse {
+    private long totalCompanies;
+    private long eligibleCompanies;
+    private long appliedCompanies;
+    private Map<String, Long> applicationStatusSummary;
+    private boolean isPlaced;
+    private String placedCompanyName;
+    private BigDecimal packageOffered;
+    private List<CompanyResponse> upcomingDrives;
+    private List<NotificationResponse> recentNotifications;
+    private List<FeedbackResponse> feedbackReceived;
+}

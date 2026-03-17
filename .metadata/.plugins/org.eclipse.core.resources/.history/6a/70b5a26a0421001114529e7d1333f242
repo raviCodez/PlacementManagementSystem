@@ -1,0 +1,41 @@
+// ─────────────────────────────────────────
+// repository/StudentProfileRepository.java
+// ─────────────────────────────────────────
+package com.placement.Repository;
+
+import com.placement.Entity.StudentProfile;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface StudentProfileRepository extends JpaRepository<StudentProfile, Long> {
+
+    Optional<StudentProfile> findByUserId(Long userId);
+
+    long countByIsPlacedTrue();
+
+    long countByUser_Department_Id(Long departmentId);
+
+    long countByIsPlacedTrueAndUser_Department_Id(Long departmentId);
+
+    // Students eligible for a company
+    @Query("""
+        SELECT sp FROM StudentProfile sp
+        WHERE sp.cgpa >= :minCgpa
+        AND sp.backlogCount <= :maxBacklogs
+        AND sp.user.department.id IN :deptIds
+        AND sp.isPlaced = false
+        """)
+    List<StudentProfile> findEligibleStudents(
+        @Param("minCgpa")     BigDecimal minCgpa,
+        @Param("maxBacklogs") int maxBacklogs,
+        @Param("deptIds")     List<Long> departmentIds
+    );
+
+    List<StudentProfile> findByIsPlacedTrueAndUser_Department_Id(Long deptId);
+    List<StudentProfile> findByIsPlacedFalseAndUser_Department_Id(Long deptId);
+}

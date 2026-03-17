@@ -1,0 +1,77 @@
+package com.placement.Config;
+
+// ─────────────────────────────────────────
+// config/SecurityConfig.java
+// ─────────────────────────────────────────
+
+// config/SecurityConfig.java
+
+import com.placement.Security.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.*;
+import org.springframework.security.config.annotation.authentication.configuration.*;
+import org.springframework.security.config.annotation.method.configuration.*;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.*;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.*;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtAuthenticationFilter  jwtAuthFilter;
+    private final AuthEntryPoint           authEntryPoint;          // ← NEW
+    private final CustomAccessDeniedHandler accessDeniedHandler;    // ← NEW
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
+        return http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(sm ->
+                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // ── Wire the two handlers here ────────────────────────────────
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authEntryPoint)      // 401 handler
+                .accessDeniedHandler(accessDeniedHandler)       // 403 handler
+            )
+
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/placement/**")
+                    .hasAnyRole("ADMIN", "PLACEMENT_TEAM")
+                .requestMatchers("/api/coordinator/**")
+                    .hasAnyRole("ADMIN", "DEPARTMENT_COORDINATOR")
+                .requestMatchers("/api/student/**").hasRole("STUDENT")
+                .requestMatchers("/api/dashboard/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/companies/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/companies/**")
+                    .hasAnyRole("ADMIN", "PLACEMENT_TEAM")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthFilter,
+                UsernamePasswordAuthenticationFilter.class)
+            .build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+}

@@ -1,0 +1,70 @@
+package com.placement.controller;
+
+
+import com.placement.Dto.Response.*;
+import com.placement.Security.JwtUtil;
+import com.placement.Service.NotificationService;
+import com.placement.dto.request.NotificationRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/notifications")
+@RequiredArgsConstructor
+public class NotificationController {
+
+    private final NotificationService notificationService;
+    private final JwtUtil             jwtUtil;
+
+    // ── SEND NOTIFICATION (Admin / Placement Team) ─────────────────────────
+    @PostMapping("/send")
+    @PreAuthorize("hasAnyRole('ADMIN','PLACEMENT_TEAM','DEPARTMENT_COORDINATOR')")
+    public ResponseEntity<ApiResponse<Void>> send(
+            @Valid @RequestBody NotificationRequest req,
+            HttpServletRequest httpReq) {
+        Long senderId = extractUserId(httpReq);
+        notificationService.sendNotification(req, senderId);
+        return ResponseEntity.ok(
+            ApiResponse.success("Notification sent successfully", null));
+    }
+
+    // ── GET MY NOTIFICATIONS (any authenticated user) ──────────────────────
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getMyNotifications(
+            HttpServletRequest req) {
+        Long userId = extractUserId(req);
+        return ResponseEntity.ok(ApiResponse.success(
+            notificationService.getNotificationsForUser(userId)));
+    }
+
+    // ── MARK ONE AS READ ───────────────────────────────────────────────────
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<ApiResponse<Void>> markRead(
+            @PathVariable Long id,
+            HttpServletRequest req) {
+        notificationService.markAsRead(id, extractUserId(req));
+        return ResponseEntity.ok(ApiResponse.success("Marked as read", null));
+    }
+
+    // ── MARK ALL AS READ ───────────────────────────────────────────────────
+    @PatchMapping("/read-all")
+    public ResponseEntity<ApiResponse<Void>> markAllRead(
+            HttpServletRequest req) {
+        notificationService.markAllAsRead(extractUserId(req));
+        return ResponseEntity.ok(
+            ApiResponse.success("All notifications marked as read", null));
+    }
+
+    // ── HELPER ────────────────────────────────────────────────────────────
+    private Long extractUserId(HttpServletRequest req) {
+        return jwtUtil.extractUserId(
+            req.getHeader("Authorization").substring(7));
+    }
+}

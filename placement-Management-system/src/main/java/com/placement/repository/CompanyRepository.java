@@ -1,0 +1,33 @@
+package com.placement.repository;
+// ─────────────────────────────────────────
+// repository/CompanyRepository.java
+// ─────────────────────────────────────────
+
+import com.placement.entity.Company;
+import com.placement.enums.CompanyStatus;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+
+@Repository
+public interface CompanyRepository extends JpaRepository<Company, Long> {
+
+    List<Company> findByStatus(CompanyStatus status);
+
+    long countByStatus(CompanyStatus status);
+
+    @Query("""
+        SELECT c FROM Company c
+        JOIN c.allowedDepartments d
+        WHERE d.id = :deptId
+        AND c.minimumCgpa <= :cgpa
+        AND c.status IN ('UPCOMING','ACTIVE')
+        """)
+    List<Company> findEligibleCompaniesForStudent(
+        @Param("deptId") Long departmentId,
+        @Param("cgpa")   java.math.BigDecimal cgpa
+    );
+
+    List<Company> findTop5ByOrderByCreatedAtDesc();
+}

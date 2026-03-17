@@ -1,0 +1,37 @@
+package com.placement.controller;
+
+import com.placement.dto.Response.*;
+import com.placement.security.JwtUtil;
+import com.placement.service.DashboardService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/dashboard")
+@RequiredArgsConstructor
+public class DashboardController {
+
+    private final DashboardService dashboardService;
+    private final JwtUtil jwtUtil;
+
+    @GetMapping("/student")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<StudentDashboardResponse>> studentDashboard(
+            HttpServletRequest req) {
+        String token = req.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.extractUserId(token);
+        return ResponseEntity.ok(
+            ApiResponse.success(dashboardService.getStudentDashboard(userId)));
+    }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<AdminDashboardResponse>> adminDashboard() {
+        return ResponseEntity.ok(
+            ApiResponse.success(dashboardService.getAdminDashboard()));
+    }
+}

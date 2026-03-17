@@ -1,0 +1,352 @@
+package com.placement.Service;
+
+import com.placement.Dto.Response.*;
+import com.placement.Entity.*;
+import com.placement.enums.*;
+import com.placement.Repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class DashboardService {
+
+    private final UserRepository           userRepository;
+    private final StudentProfileRepository profileRepository;
+    private final CompanyRepository        companyRepository;
+    private final ApplicationRepository    applicationRepository;
+    private final NotificationRepository   notificationRepository;
+    private final FeedbackRepository       feedbackRepository;
+    private final DepartmentRepository     departmentRepository;
+    private final PlacementRecordRepository placementRecordRepository;
+    private final NotificationService      notificationService;
+    private final StudentService           studentService;
+    private final CompanyService           companyService;
+
+    // ════════════════════════════════════════════════
+    // STUDENT DASHBOARD
+    // ════════════════════════════════════════════════
+    public StudentDashboardResponse getStudentDashboard(Long studentId) {
+
+        StudentProfile profile = profileRepository.findByUserId(studentId)
+            .orElseThrow(() -> new RuntimeException("Profile not found."));
+
+        User student = profile.getUser();
+        Long deptId  = student.getDepartment().getId();
+
+        // ── Company counts ───────────────────────────────────────────────
+        long totalCompanies =
+            companyRepository.countByStatus(CompanyStatus.UPCOMING) +
+            companyRepository.countByStatus(CompanyStatus.ACTIVE);
+
+        List<Company> eligible = companyRepository
+            .findEligibleCompaniesForStudent(deptId, profile.getCgpa());
+
+        // ── Application stats ────────────────────────────────────────────
+        List<Application> myApps = applicationRepository
+            .findByStudentId(studentId);
+
+        Map<String, Long> statusSummary = myApps.stream()
+            .collect(Collectors.groupingBy(
+                a -> a.getStatus().name(),
+                Collectors.counting()
+            ));
+
+        // ── Upcoming drives (max 5) ──────────────────────────────────────
+        List<CompanyResponse> upcomingDrives = companyRepository
+            .findByStatus(CompanyStatus.UPCOMING)
+            .stream()
+            .limit(5)
+            .map(companyService::toResponse)
+            .collect(Collectors.toList());
+
+        // ── Recent notifications (max 10) ────────────────────────────────
+        List<NotificationResponse> notifications =
+            notificationService.getNotificationsForUser(studentId)
+                .stream().limit(10).collect(Collectors.toList());
+
+        // ── Feedbacks received ───────────────────────────────────────────
+        List<FeedbackResponse> feedbacks = feedbackRepository
+            .findByStudentId(studentId)
+            .stream()
+            .map(f -> FeedbackResponse.builder()
+                .id(f.getId())
+                .companyName(f.getCompany() != null
+                    ? f.getCompany().getName() : null)
+                .givenByName(f.getGivenBy().getName())
+                .givenByRole(f.getGivenBy().getRole().name())
+                .rating(f.getRating())
+                .comments(f.getComments())
+                .createdAt(f.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+
+        return StudentDashboardResponse.builder()
+            .totalCompanies(totalCompanies)
+            .eligibleCompanies(eligible.size())
+            .appliedCompanies(myApps.size())
+            .applicationStatusSummary(statusSummary)
+            .isPlaced(profile.isPlaced())
+            .placedCompanyName(profile.getPlacedCompany() != null
+                ? profile.getPlacedCompany().getName() : null)
+            .packageOffered(profile.getPackageOffered())
+            .upcomingDrives(upcomingDrives)
+            .recentNotifications(notifications)
+            .feedbackReceived(feedbacks)
+            .build();
+    }
+
+    // ════════════════════════════════════════════════
+    // ADMIN DASHBOARD
+    // ════════════════════════════════════════════════
+    public AdminDashboardResponse getAdminDashboard() {
+
+        long totalStudents = userRepository.countTotalStudents();
+        long totalPlaced   = profileRepository.countByIsPlacedTrue();
+        double placePct    = totalStudents > 0
+            ? Math.round((totalPlaced * 100.0 / totalStudents) * 100.0) / 100.0
+            : 0.0;
+
+        // ── Department-wise placement map ─────────────────────────────────
+        Map<String, Long> deptStats = new LinkedHashMap<>();
+        departmentRepository.findAllByOrderByNameAsc().forEach(dept -> {
+            long placed = profileRepository
+                .countByIsPlacedTrueAndUser_Department_Id(dept.getId());
+            deptStats.put(dept.getName(), placed);
+        });
+
+        // ── Company-wise selection count ──────────────────────────────────
+        Map<String, Long> companyStats = new LinkedHashMap<>();
+        placementRecordRepository.findTopHiringCompanies()
+            .forEach(row -> companyStats.put(
+                (String) row[0], (Long) row[1]));
+
+        // ── Recent companies (last 5 added) ───────────────────────────────
+        List<CompanyResponse> recentCompanies = companyRepository
+            .findTop5ByOrderByCreatedAtDesc()
+            .stream()
+            .map(companyService::toResponse)
+            .collect(Collectors.toList());
+
+        // ── Recent notifications (last 5) ─────────────────────────────────
+        List<NotificationResponse> recentNotifs = notificationRepository
+            .findTop5ByOrderByCreatedAtDesc()
+            .stream()
+            .map(n -> NotificationResponse.builder()
+                .id(n.getId())
+                .title(n.getTitle())
+                .type(n.getType())
+                .isBroadcast(n.getRecipient() == null)
+                .createdAt(n.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+
+        return AdminDashboardResponse.builder()
+            .totalStudents(totalStudents)
+            .totalPlaced(totalPlaced)
+            .placementPercentage(placePct)
+            .departmentWisePlacement(deptStats)
+            .companyWiseSelection(companyStats)
+            .upcomingCompanies(companyRepository.countByStatus(CompanyStatus.UPCOMING))
+            .recentlyAddedCompanies(recentCompanies)
+            .recentNotifications(recentNotifs)
+            .build();
+    }
+
+    // ════════════════════════════════════════════════
+    // PLACEMENT TEAM DASHBOARD
+    // ════════════════════════════════════════════════
+    public PlacementTeamDashboardResponse getPlacementTeamDashboard() {
+
+        long totalActive    = companyRepository.countByStatus(CompanyStatus.ACTIVE);
+        long totalUpcoming  = companyRepository.countByStatus(CompanyStatus.UPCOMING);
+        long totalCompleted = companyRepository.countByStatus(CompanyStatus.COMPLETED);
+
+        // ── Application counts ────────────────────────────────────────────
+        long totalApps      = applicationRepository.count();
+        long totalShortlist = applicationRepository
+            .countByStatus(ApplicationStatus.SHORTLISTED);
+        long totalSelected  = applicationRepository
+            .countByStatus(ApplicationStatus.SELECTED);
+        long totalRejected  = applicationRepository
+            .countByStatus(ApplicationStatus.REJECTED);
+
+        // ── Per-company breakdown ─────────────────────────────────────────
+        Map<String, Long> appsPerCompany      = new LinkedHashMap<>();
+        Map<String, Long> selectedPerCompany  = new LinkedHashMap<>();
+
+        companyRepository.findAll().forEach(company -> {
+            long apps = applicationRepository.countByCompanyId(company.getId());
+            long sel  = applicationRepository.countByCompanyIdAndStatus(
+                            company.getId(), ApplicationStatus.SELECTED);
+            appsPerCompany.put(company.getName(), apps);
+            selectedPerCompany.put(company.getName(), sel);
+        });
+
+        // ── Upcoming drives ───────────────────────────────────────────────
+        List<CompanyResponse> upcomingDrives = companyRepository
+            .findByStatus(CompanyStatus.UPCOMING)
+            .stream()
+            .map(companyService::toResponse)
+            .collect(Collectors.toList());
+
+        // ── Recent application updates (last 10) ──────────────────────────
+        List<ApplicationResponse> recentUpdates = applicationRepository
+            .findTop10ByOrderByUpdatedAtDesc()
+            .stream()
+            .map(this::toApplicationResponse)
+            .collect(Collectors.toList());
+
+        // ── Overall selection rate ─────────────────────────────────────────
+        double selectionRate = totalApps > 0
+            ? Math.round((totalSelected * 100.0 / totalApps) * 100.0) / 100.0
+            : 0.0;
+
+        // ── Students placed this month ─────────────────────────────────────
+        long placedThisMonth = placementRecordRepository
+            .countPlacedThisMonth();
+
+        return PlacementTeamDashboardResponse.builder()
+            .totalActiveCompanies(totalActive)
+            .totalUpcomingCompanies(totalUpcoming)
+            .totalCompletedCompanies(totalCompleted)
+            .totalApplicationsReceived(totalApps)
+            .totalShortlisted(totalShortlist)
+            .totalSelected(totalSelected)
+            .totalRejected(totalRejected)
+            .applicationsPerCompany(appsPerCompany)
+            .selectedPerCompany(selectedPerCompany)
+            .upcomingDrives(upcomingDrives)
+            .recentApplicationUpdates(recentUpdates)
+            .overallSelectionRate(selectionRate)
+            .studentsPlacedThisMonth(placedThisMonth)
+            .build();
+    }
+
+    // ════════════════════════════════════════════════
+    // DEPARTMENT COORDINATOR DASHBOARD
+    // ════════════════════════════════════════════════
+    public CoordinatorDashboardResponse getCoordinatorDashboard(Long coordinatorId) {
+
+        User coordinator = userRepository.findById(coordinatorId)
+            .orElseThrow(() -> new RuntimeException("Coordinator not found."));
+
+        Department dept  = coordinator.getDepartment();
+        if (dept == null) {
+            throw new RuntimeException(
+                "Coordinator is not assigned to any department.");
+        }
+        Long deptId = dept.getId();
+
+        // ── Student counts ────────────────────────────────────────────────
+        long totalInDept  = profileRepository.countByUser_Department_Id(deptId);
+        long placedInDept = profileRepository
+            .countByIsPlacedTrueAndUser_Department_Id(deptId);
+        long unplaced     = totalInDept - placedInDept;
+        double placePct   = totalInDept > 0
+            ? Math.round((placedInDept * 100.0 / totalInDept) * 100.0) / 100.0
+            : 0.0;
+
+        // ── Eligible students per upcoming drive ──────────────────────────
+        Map<String, Long> eligiblePerDrive = new LinkedHashMap<>();
+        companyRepository.findByStatus(CompanyStatus.UPCOMING).forEach(company -> {
+            boolean deptAllowed = company.getAllowedDepartments()
+                .stream()
+                .anyMatch(d -> d.getId().equals(deptId));
+            if (deptAllowed) {
+                long count = profileRepository
+                    .findEligibleStudents(
+                        company.getMinimumCgpa(),
+                        company.getMaxBacklogs(),
+                        List.of(deptId))
+                    .size();
+                eligiblePerDrive.put(company.getName(), count);
+            }
+        });
+
+        // ── Application stats for department students ─────────────────────
+        List<Application> deptApps = applicationRepository
+            .findByDepartmentId(deptId);
+
+        long totalDeptApps = deptApps.size();
+        long shortlisted   = deptApps.stream()
+            .filter(a -> a.getStatus() == ApplicationStatus.SHORTLISTED)
+            .count();
+        long selected      = deptApps.stream()
+            .filter(a -> a.getStatus() == ApplicationStatus.SELECTED)
+            .count();
+        long rejected      = deptApps.stream()
+            .filter(a -> a.getStatus() == ApplicationStatus.REJECTED)
+            .count();
+
+        // ── Recent feedback for dept students ─────────────────────────────
+        List<FeedbackResponse> recentFeedback = feedbackRepository
+            .findByStudent_Department_Id(deptId)
+            .stream().limit(10)
+            .map(f -> FeedbackResponse.builder()
+                .id(f.getId())
+                .studentName(f.getStudent().getName())
+                .givenByName(f.getGivenBy().getName())
+                .rating(f.getRating())
+                .comments(f.getComments())
+                .createdAt(f.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+
+        // ── Recently placed students in dept (last 5) ─────────────────────
+        List<StudentSummaryResponse> recentlyPlaced = profileRepository
+            .findByIsPlacedTrueAndUser_Department_Id(deptId)
+            .stream().limit(5)
+            .map(p -> studentService.toSummaryResponse(p.getUser(), p))
+            .collect(Collectors.toList());
+
+        // ── Unplaced but eligible students ────────────────────────────────
+        List<StudentSummaryResponse> unplacedEligible = profileRepository
+            .findByIsPlacedFalseAndUser_Department_Id(deptId)
+            .stream().limit(10)
+            .map(p -> studentService.toSummaryResponse(p.getUser(), p))
+            .collect(Collectors.toList());
+
+        return CoordinatorDashboardResponse.builder()
+            .departmentName(dept.getName())
+            .departmentCode(dept.getCode())
+            .totalStudentsInDept(totalInDept)
+            .placedStudentsInDept(placedInDept)
+            .unplacedStudentsInDept(unplaced)
+            .deptPlacementPercentage(placePct)
+            .eligibleStudentsPerDrive(eligiblePerDrive)
+            .totalApplicationsByDeptStudents(totalDeptApps)
+            .shortlistedFromDept(shortlisted)
+            .selectedFromDept(selected)
+            .rejectedFromDept(rejected)
+            .recentFeedbacksForDeptStudents(recentFeedback)
+            .recentlyPlacedStudents(recentlyPlaced)
+            .unplacedEligibleStudents(unplacedEligible)
+            .build();
+    }
+
+    // ── HELPER: Application → Response ────────────────────────────────────
+    private ApplicationResponse toApplicationResponse(Application a) {
+        return ApplicationResponse.builder()
+            .id(a.getId())
+            .studentId(a.getStudent().getId())
+            .studentName(a.getStudent().getName())
+            .studentEmail(a.getStudent().getEmail())
+            .departmentName(a.getStudent().getDepartment() != null
+                ? a.getStudent().getDepartment().getName() : null)
+            .companyId(a.getCompany().getId())
+            .companyName(a.getCompany().getName())
+            .status(a.getStatus())
+            .remarks(a.getRemarks())
+            .appliedAt(a.getAppliedAt())
+            .updatedAt(a.getUpdatedAt())
+            .build();
+    }
+
+    public List<Object[]> getYearWiseTrends() {
+    return placementRecordRepository.findYearWisePlacementCount();
+}
+}

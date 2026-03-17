@@ -1,0 +1,153 @@
+package com.placement.Controller;
+
+
+import com.placement.Dto.Response.*;
+import com.placement.Security.JwtUtil;
+import com.placement.Service.*;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/admin")
+@RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")   // ← All endpoints in this controller = ADMIN only
+public class AdminController {
+
+    private final StudentService         studentService;
+    private final ApplicationService     applicationService;
+    private final FeedbackService        feedbackService;
+    private final NotificationService    notificationService;
+    private final DashboardService       dashboardService;
+    private final JwtUtil                jwtUtil;
+
+    // ── FILTER STUDENTS ───────────────────────────────────────────────────
+    @GetMapping("/students")
+    public ResponseEntity<ApiResponse<List<StudentSummaryResponse>>> filterStudents(
+            @RequestParam(required = false) Long   departmentId,
+            @RequestParam(required = false) String section,
+            @RequestParam(required = false) Boolean isPlaced) {
+        return ResponseEntity.ok(ApiResponse.success(
+            studentService.getAllStudents(departmentId, section, isPlaced)));
+    }
+
+    // ── GET SINGLE STUDENT ────────────────────────────────────────────────
+    @GetMapping("/students/{studentId}")
+    public ResponseEntity<ApiResponse<StudentSummaryResponse>> getStudent(
+            @PathVariable Long studentId) {
+        return ResponseEntity.ok(ApiResponse.success(
+            studentService.getStudentProfile(studentId)));
+    }
+
+    // ── MANUALLY UPDATE PLACEMENT STATUS ──────────────────────────────────
+    @PatchMapping("/students/{studentId}/placement")
+    public ResponseEntity<ApiResponse<StudentSummaryResponse>> updatePlacement(
+            @PathVariable Long studentId,
+            @RequestParam boolean isPlaced,
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) BigDecimal packageOffered) {
+        return ResponseEntity.ok(ApiResponse.success(
+            "Placement status updated",
+            studentService.updatePlacementStatus(
+                studentId, isPlaced, companyId, packageOffered)));
+    }
+
+    // ── VIEW ALL APPLICATIONS ─────────────────────────────────────────────
+    @GetMapping("/applications")
+    public ResponseEntity<ApiResponse<List<ApplicationResponse>>> allApplications(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false)
+            com.placement.enums.ApplicationStatus status) {
+
+        List<ApplicationResponse> results;
+
+        if (companyId != null && status != null) {
+            results = applicationService
+                .getApplicationsByCompanyAndStatus(companyId, status)
+                .stream().map(this::toAppResponse).toList();
+        } else if (companyId != null) {
+            results = applicationService.getCompanyApplications(companyId)
+                .stream().map(this::toAppResponse).toList();
+        } else {
+            results = applicationService.getAllApplications()
+                .stream().map(this::toAppResponse).toList();
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(results));
+    }
+
+    // ── UPDATE APPLICATION STATUS ─────────────────────────────────────────
+    @PutMapping("/applications/{id}/status")
+    public ResponseEntity<ApiResponse<ApplicationResponse>> updateAppStatus(
+            @PathVariable Long id,
+            @RequestParam com.placement.enums.ApplicationStatus status,
+            @RequestParam(required = false) String remarks) {
+        var updated = applicationService.updateStatus(id, status, remarks);
+        return ResponseEntity.ok(ApiResponse.success(
+            "Status updated", toAppResponse(updated)));
+    }
+
+    // ── ADD FEEDBACK ──────────────────────────────────────────────────────
+    @PostMapping("/feedback")
+    public ResponseEntity<ApiResponse<FeedbackResponse>> addFeedback(
+            @RequestParam Long studentId,
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) Integer rating,
+            @RequestParam String comments,
+            HttpServletRequest req) {
+        Long adminId = extractUserId(req);
+        return ResponseEntity.ok(ApiResponse.success(
+            feedbackService.addFeedback(
+                studentId, companyId, rating, comments, adminId)));
+    }
+
+    // ── ANALYTICS ─────────────────────────────────────────────────────────
+    @GetMapping("/analytics")
+    public ResponseEntity<ApiResponse<AdminDashboardResponse>> analytics() {
+        return ResponseEntity.ok(ApiResponse.success(
+            dashboardService.getAdminDashboard()));
+    }
+
+    // ── ANALYTICS: YEAR-WISE TREND ─────────────────────────────────────────
+    @GetMapping("/analytics/trends")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> placementTrends() {
+        Map<String, Long> trends = new java.util.LinkedHashMap<>();
+        // Reusing PlacementRecordRepository query
+        dashboardService.getYearWiseTrends()
+            .forEach(row -> trends.put(
+                String.valueOf(row[0]), (Long) row[1]));
+        return ResponseEntity.ok(ApiResponse.success(trends));
+    }
+
+    // ── HELPER ────────────────────────────────────────────────────────────
+    private Long extractUserId(HttpServletRequest req) {
+        return jwtUtil.extractUserId(
+            req.getHeader("Authorization").substring(7));
+    }
+
+    private ApplicationResponse toAppResponse(
+            com.placement.Entity.Application a) {
+        return ApplicationResponse.builder()
+            .id(a.getId())
+            .studentId(a.getStudent().getId())
+            .studentName(a.getStudent().getName())
+            .studentEmail(a.getStudent().getEmail())
+            .rollNumber(a.getStudent().getStudentProfile() != null
+                ? a.getStudent().getStudentProfile().getRollNumber() : null)
+            .departmentName(a.getStudent().getDepartment() != null
+                ? a.getStudent().getDepartment().getName() : null)
+            .companyId(a.getCompany().getId())
+            .companyName(a.getCompany().getName())
+            .status(a.getStatus())
+            .remarks(a.getRemarks())
+            .appliedAt(a.getAppliedAt())
+            .updatedAt(a.getUpdatedAt())
+            .build();
+    }
+}

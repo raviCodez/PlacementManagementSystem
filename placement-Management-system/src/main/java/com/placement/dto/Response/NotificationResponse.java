@@ -1,0 +1,29 @@
+package com.placement.dto.Response;
+
+
+import com.placement.enums.NotificationType;
+import lombok.*;
+import java.time.LocalDateTime;
+
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+public class NotificationResponse {
+
+    private Long id;
+    private String title;
+    private String message;
+    private NotificationType type;
+
+    // Sender info
+    private Long senderId;
+    private String senderName;
+
+    // Is this a personal or broadcast notification?
+    private boolean isBroadcast;
+
+    // Related company (if it's a drive notification)
+    private Long companyId;
+    private String companyName;
+
+    private boolean isRead;
+    private LocalDateTime createdAt;
+}

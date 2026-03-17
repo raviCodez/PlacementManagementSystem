@@ -1,0 +1,5 @@
+package com.placement.Security;
+
+public class AuthEntryPoint {
+
+}

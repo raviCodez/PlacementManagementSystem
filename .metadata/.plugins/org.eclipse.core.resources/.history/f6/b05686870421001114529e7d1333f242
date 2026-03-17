@@ -1,0 +1,64 @@
+package com.placement.controller;
+
+import com.placement.enums.ApplicationStatus;
+import com.placement.security.JwtUtil;
+import com.placement.Service.ApplicationService;
+import com.placement.dto.Response.ApiResponse;
+import com.placement.entity.Application;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/applications")
+@RequiredArgsConstructor
+public class ApplicationController {
+
+    private final ApplicationService applicationService;
+    private final JwtUtil jwtUtil;
+
+    @PostMapping("/apply/{companyId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<Application>> apply(
+            @PathVariable Long companyId,
+            HttpServletRequest req) {
+        Long studentId = jwtUtil.extractUserId(
+            req.getHeader("Authorization").substring(7));
+        return ResponseEntity.ok(
+            ApiResponse.success("Applied successfully",
+                applicationService.applyToCompany(studentId, companyId)));
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','PLACEMENT_TEAM')")
+    public ResponseEntity<ApiResponse<Application>> updateStatus(
+            @PathVariable Long id,
+            @RequestParam ApplicationStatus status,
+            @RequestParam(required = false) String remarks) {
+        return ResponseEntity.ok(
+            ApiResponse.success("Status updated",
+                applicationService.updateStatus(id, status, remarks)));
+    }
+
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<List<Application>>> myApplications(
+            HttpServletRequest req) {
+        Long studentId = jwtUtil.extractUserId(
+            req.getHeader("Authorization").substring(7));
+        return ResponseEntity.ok(
+            ApiResponse.success(applicationService.getStudentApplications(studentId)));
+    }
+
+    @GetMapping("/company/{companyId}")
+    @PreAuthorize("hasAnyRole('ADMIN','PLACEMENT_TEAM')")
+    public ResponseEntity<ApiResponse<List<Application>>> companyApplications(
+            @PathVariable Long companyId) {
+        return ResponseEntity.ok(
+            ApiResponse.success(applicationService.getCompanyApplications(companyId)));
+    }
+}

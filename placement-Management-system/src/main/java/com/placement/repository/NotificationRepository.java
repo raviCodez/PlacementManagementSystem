@@ -1,0 +1,25 @@
+package com.placement.repository;
+
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.placement.entity.Notification;
+
+import java.util.List;
+
+@Repository
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
+
+    // Get notifications for a specific user OR broadcast ones (recipient = null)
+    @Query("""
+        SELECT n FROM Notification n
+        WHERE n.recipient.id = :userId OR n.recipient IS NULL
+        ORDER BY n.createdAt DESC
+        """)
+    List<Notification> findForUser(@Param("userId") Long userId);
+
+    List<Notification> findTop5ByOrderByCreatedAtDesc();
+
+    long countByRecipientIdAndIsReadFalse(Long recipientId);
+}

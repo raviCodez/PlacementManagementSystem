@@ -1,0 +1,86 @@
+package com.placement.entity;
+// ─────────────────────────────────────────
+// entity/Company.java
+// ─────────────────────────────────────────
+
+import com.placement.enums.CompanyStatus;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+
+@Entity
+@Table(name = "company")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Company {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 200)
+    private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(length = 300)
+    private String website;
+
+    @Column(name = "logo_url", length = 500)
+    private String logoUrl;
+
+    @Column(name = "package_offered", nullable = false, precision = 10, scale = 2)
+    private BigDecimal packageOffered;
+
+    @Column(name = "minimum_cgpa", nullable = false, precision = 4, scale = 2)
+    private BigDecimal minimumCgpa;
+
+    @Column(name = "max_backlogs")
+    private Integer maxBacklogs = 0;
+
+    @Column(name = "drive_date")
+    private LocalDate driveDate;
+
+    @Column(name = "drive_location", length = 255)
+    private String driveLocation;
+
+    @Column(name = "registration_deadline")
+    private LocalDateTime registrationDeadline;
+
+    @Column(name = "job_role", length = 200)
+    private String jobRole;
+
+    @Column(name = "job_description", columnDefinition = "TEXT")
+    private String jobDescription;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private CompanyStatus status = CompanyStatus.UPCOMING;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "company_allowed_departments",
+        joinColumns = @JoinColumn(name = "company_id"),
+        inverseJoinColumns = @JoinColumn(name = "department_id")
+    )
+    private Set<Department> allowedDepartments;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Application> applications;
+}

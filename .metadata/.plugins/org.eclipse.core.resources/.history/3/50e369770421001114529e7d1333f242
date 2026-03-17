@@ -1,0 +1,46 @@
+package com.placement.Repository;
+
+import com.placement.entity.Application;
+import com.placement.enums.ApplicationStatus;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface ApplicationRepository extends JpaRepository<Application, Long> {
+
+    List<Application> findByStudentId(Long studentId);
+
+    List<Application> findByCompanyId(Long companyId);
+
+    Optional<Application> findByStudentIdAndCompanyId(Long studentId, Long companyId);
+
+    boolean existsByStudentIdAndCompanyId(Long studentId, Long companyId);
+
+    long countByStudentId(Long studentId);
+
+    long countByStudentIdAndStatus(Long studentId, ApplicationStatus status);
+
+    long countByCompanyId(Long companyId);
+
+    long countByCompanyIdAndStatus(Long companyId, ApplicationStatus status);
+
+    @Query("SELECT a FROM Application a WHERE a.company.id = :cid AND a.status = :status")
+    List<Application> findByCompanyAndStatus(
+        @Param("cid")    Long companyId,
+        @Param("status") ApplicationStatus status
+    );
+
+    // Department-wise stats
+    @Query("""
+        SELECT a FROM Application a
+        WHERE a.student.department.id = :deptId
+        """)
+    List<Application> findByDepartmentId(@Param("deptId") Long departmentId);
+
+    List<Application> findTop10ByOrderByUpdatedAtDesc();
+long countByStatus(ApplicationStatus status);
+
+}

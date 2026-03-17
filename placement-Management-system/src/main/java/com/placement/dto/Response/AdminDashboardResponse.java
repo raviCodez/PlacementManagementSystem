@@ -1,0 +1,17 @@
+package com.placement.dto.Response;
+
+import lombok.*;
+import java.util.List;
+import java.util.Map;
+
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+public class AdminDashboardResponse {
+    private long totalStudents;
+    private long totalPlaced;
+    private double placementPercentage;
+    private Map<String, Long> departmentWisePlacement;
+    private Map<String, Long> companyWiseSelection;
+    private long upcomingCompanies;
+    private List<CompanyResponse> recentlyAddedCompanies;
+    private List<NotificationResponse> recentNotifications;
+}

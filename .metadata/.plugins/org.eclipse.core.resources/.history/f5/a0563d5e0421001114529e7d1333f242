@@ -1,0 +1,29 @@
+package com.placement.Dto.Response;
+
+
+import lombok.*;
+import java.time.LocalDateTime;
+
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
+public class FeedbackResponse {
+
+    private Long id;
+
+    // About which student
+    private Long studentId;
+    private String studentName;
+
+    // From which company drive
+    private Long companyId;
+    private String companyName;
+
+    // Who gave the feedback
+    private Long givenById;
+    private String givenByName;
+    private String givenByRole;   // ADMIN or DEPARTMENT_COORDINATOR
+
+    private Integer rating;       // 1–5
+    private String comments;
+
+    private LocalDateTime createdAt;
+}

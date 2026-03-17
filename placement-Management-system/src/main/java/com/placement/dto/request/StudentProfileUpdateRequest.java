@@ -1,0 +1,36 @@
+package com.placement.dto.request;
+
+
+import jakarta.validation.constraints.*;
+import lombok.*;
+import java.math.BigDecimal;
+import java.util.List;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class StudentProfileUpdateRequest {
+
+    @DecimalMin(value = "0.0", message = "CGPA cannot be negative")
+    @DecimalMax(value = "10.0", message = "CGPA cannot exceed 10.0")
+    private BigDecimal cgpa;
+
+    @DecimalMin(value = "0.0")
+    @DecimalMax(value = "100.0")
+    private BigDecimal marks10th;
+
+    @DecimalMin(value = "0.0")
+    @DecimalMax(value = "100.0")
+    private BigDecimal marks12th;
+
+    @Min(value = 0, message = "Backlog count cannot be negative")
+    private Integer backlogCount;
+
+    // Free-text skills list (e.g., ["Java", "Spring", "MySQL"])
+    private List<String> skills;
+
+    @Size(max = 10)
+    private String section;
+
+    @Min(value = 2020)
+    @Max(value = 2035)
+    private Integer graduationYear;
+}
