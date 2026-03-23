@@ -1,0 +1,145 @@
+<div class="company-container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h2>🏢 Companies</h2>
+      <p *ngIf="isStudent">Showing companies you are eligible for</p>
+      <p *ngIf="!isStudent">All registered companies</p>
+    </div>
+    <button mat-raised-button color="primary"
+            *ngIf="isAdminOrPlacement"
+            routerLink="/company/create">
+      <mat-icon>add</mat-icon> Add Company
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search by name or role</mat-label>
+      <input matInput [(ngModel)]="searchText"
+             (ngModelChange)="applyFilter()"
+             placeholder="e.g. TCS, Software Engineer">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="status-field">
+      <mat-label>Filter by Status</mat-label>
+      <mat-select [(ngModel)]="selectedStatus"
+                  (ngModelChange)="applyFilter()">
+        <mat-option *ngFor="let s of statusOptions" [value]="s">
+          {{ s }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+  </div>
+
+  <!-- Loading -->
+  <mat-progress-spinner *ngIf="isLoading"
+    mode="indeterminate" diameter="48"
+    style="margin: 40px auto; display: block;">
+  </mat-progress-spinner>
+
+  <!-- Company Cards Grid -->
+  <div class="company-grid" *ngIf="!isLoading">
+
+    <mat-card class="company-card"
+              *ngFor="let company of filteredCompanies">
+
+      <!-- Status Badge -->
+      <div class="status-badge" [ngClass]="getStatusClass(company.status)">
+        {{ company.status }}
+      </div>
+
+      <!-- Company Header -->
+      <mat-card-header>
+        <div class="company-logo">
+          {{ company.name.charAt(0) }}
+        </div>
+        <div class="company-header-info">
+          <mat-card-title>{{ company.name }}</mat-card-title>
+          <mat-card-subtitle>{{ company.jobRole }}</mat-card-subtitle>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+
+        <!-- Key Info -->
+        <div class="info-grid">
+          <div class="info-item">
+            <mat-icon>local_atm</mat-icon>
+            <span>{{ company.packageOffered }} LPA</span>
+          </div>
+          <div class="info-item">
+            <mat-icon>school</mat-icon>
+            <span>Min CGPA: {{ company.minimumCgpa }}</span>
+          </div>
+          <div class="info-item">
+            <mat-icon>event</mat-icon>
+            <span>{{ company.driveDate | date:'dd MMM yyyy' }}</span>
+          </div>
+          <div class="info-item">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ company.driveLocation || 'TBA' }}</span>
+          </div>
+        </div>
+
+        <!-- Departments -->
+        <div class="dept-chips" *ngIf="company.allowedDepartments?.length">
+          <mat-chip-set>
+            <mat-chip *ngFor="let dept of company.allowedDepartments">
+              {{ dept }}
+            </mat-chip>
+          </mat-chip-set>
+        </div>
+
+        <!-- Stats (Admin/Placement) -->
+        <div class="stats-row" *ngIf="isAdminOrPlacement">
+          <span>Applied: {{ company.totalApplications }}</span>
+          <span>Shortlisted: {{ company.shortlistedCount }}</span>
+          <span>Selected: {{ company.selectedCount }}</span>
+        </div>
+
+      </mat-card-content>
+
+      <mat-card-actions>
+
+        <!-- View Details -->
+        <button mat-stroked-button color="primary"
+                [routerLink]="['/company', company.id]">
+          <mat-icon>visibility</mat-icon> View Details
+        </button>
+
+        <!-- Apply Button (Student only) -->
+        <button mat-raised-button color="accent"
+                *ngIf="isStudent && company.status !== 'COMPLETED'"
+                [disabled]="applyingId === company.id"
+                (click)="applyToCompany(company)">
+          <mat-icon>send</mat-icon>
+          {{ applyingId === company.id ? 'Applying...' : 'Apply Now' }}
+        </button>
+
+        <!-- Edit (Admin/Placement) -->
+        <button mat-icon-button color="primary"
+                *ngIf="isAdminOrPlacement"
+                [routerLink]="['/company/edit', company.id]">
+          <mat-icon>edit</mat-icon>
+        </button>
+
+      </mat-card-actions>
+
+    </mat-card>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredCompanies.length === 0">
+      <mat-icon>business_center</mat-icon>
+      <h3>No companies found</h3>
+      <p>Try changing your search or filter.</p>
+    </div>
+
+  </div>
+
+</div>

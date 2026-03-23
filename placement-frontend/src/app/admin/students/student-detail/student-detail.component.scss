@@ -1,0 +1,116 @@
+.detail-container {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.back-btn { margin-bottom: 20px; }
+
+.hero-card {
+  margin-bottom: 20px;
+  border-radius: 12px;
+}
+
+.hero-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1976d2, #42a5f5);
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hero-info {
+  flex: 1;
+  h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
+  p  { color: #666; margin: 2px 0; font-size: 0.9rem; }
+}
+
+.placement-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+
+  span { display: block; font-size: 0.8rem; margin-top: 2px; }
+
+  &.placed   { background: #e8f5e9; color: #2e7d32; }
+  &.unplaced { background: #fff8e1; color: #f57f17; }
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+
+  mat-icon { color: #1976d2; }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    color: #999;
+  }
+
+  strong { font-size: 0.95rem; }
+}
+
+.resume-link {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover { text-decoration: underline; }
+}
+
+.skills-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.app-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  gap: 12px;
+
+  .app-info {
+    display: flex;
+    flex-direction: column;
+
+    span { font-size: 0.75rem; color: #999; }
+  }
+}
+
+.status-select { width: 140px; }
+
+.empty-text {
+  color: #bbb;
+  text-align: center;
+  padding: 20px 0;
+}

@@ -1,0 +1,43 @@
+<mat-toolbar color="primary" class="navbar">
+
+  <span class="brand">🎓 Placement Portal</span>
+
+  <span class="spacer"></span>
+
+  <ng-container *ngIf="authStorage.isLoggedIn()">
+
+       <!-- Student Links -->
+<ng-container *ngIf="userRole === 'STUDENT'">
+  <a mat-button routerLink="/student/dashboard">Dashboard</a>
+  <a mat-button routerLink="/student/profile">Profile</a>
+  <a mat-button routerLink="/student/companies">Companies</a>
+  <a mat-button routerLink="/student/applications">Applications</a>
+</ng-container>
+
+<!-- Admin Links -->
+<ng-container *ngIf="userRole === 'ADMIN'">
+  <a mat-button routerLink="/admin/dashboard">Dashboard</a>
+  <a mat-button routerLink="/admin/students">Students</a>
+  <a mat-button routerLink="/admin/applications">Applications</a>
+  <a mat-button routerLink="/company">Companies</a>
+</ng-container>
+
+
+
+    <!-- User Menu -->
+    <button mat-icon-button [matMenuTriggerFor]="userMenu">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    <mat-menu #userMenu>
+      <div class="user-info">
+        <strong>{{ userName }}</strong>
+        <span>{{ userRole }}</span>
+      </div>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon> Logout
+      </button>
+    </mat-menu>
+
+  </ng-container>
+
+</mat-toolbar>

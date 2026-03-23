@@ -1,0 +1,48 @@
+.applications-container {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.summary-row {
+  margin-bottom: 16px;
+}
+
+.full-width { width: 100%; }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  mat-icon { font-size: 1rem; width: 1rem; height: 1rem; }
+
+  &.applied     { background: #e3f2fd; color: #1565c0; }
+  &.shortlisted { background: #fff8e1; color: #f57f17; }
+  &.selected    { background: #e8f5e9; color: #2e7d32; }
+  &.rejected    { background: #ffebee; color: #c62828; }
+}
+
+.empty-card {
+  text-align: center;
+  padding: 48px;
+  color: #999;
+
+  h3 { margin: 12px 0 8px; }
+  p  { color: #bbb; }
+}
+
+th.mat-header-cell {
+  font-weight: 700;
+  color: #333;
+}

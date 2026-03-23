@@ -49,10 +49,12 @@ public class SecurityConfig {
                     .hasAnyRole("ADMIN", "DEPARTMENT_COORDINATOR")
                 .requestMatchers("/api/student/**").hasRole("STUDENT")
                 .requestMatchers("/api/dashboard/**").authenticated()
+                .requestMatchers("/api/departments/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/companies/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/companies/**")
                     .hasAnyRole("ADMIN", "PLACEMENT_TEAM")
                 .anyRequest().authenticated()
+                
             )
             .addFilterBefore(jwtAuthFilter,
                 UsernamePasswordAuthenticationFilter.class)

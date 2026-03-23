@@ -1,0 +1,57 @@
+.applications-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+
+  h2 { font-size: 1.6rem; font-weight: 700; margin: 0; }
+  p  { color: #666; margin: 4px 0 0; }
+}
+
+.full-width { width: 100%; }
+
+.sub-text {
+  display: block;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  &.applied     { background: #e3f2fd; color: #1565c0; }
+  &.shortlisted { background: #fff8e1; color: #f57f17; }
+  &.selected    { background: #e8f5e9; color: #2e7d32; }
+  &.rejected    { background: #ffebee; color: #c62828; }
+}
+
+.status-select {
+  width: 130px;
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  color: #bbb;
+
+  mat-icon { font-size: 3rem; width: 3rem; height: 3rem; }
+  p { margin-top: 8px; }
+}
+
+th.mat-header-cell {
+  font-weight: 700;
+  color: #333;
+  background: #fafafa;
+}
+
+tr.mat-row:hover { background: #f5f5f5; }

@@ -1,0 +1,142 @@
+<div class="detail-container">
+
+  <!-- Back -->
+  <button mat-stroked-button routerLink="/admin/students" class="back-btn">
+    <mat-icon>arrow_back</mat-icon> Back to Students
+  </button>
+
+  <mat-progress-spinner *ngIf="isLoading"
+    mode="indeterminate" diameter="48"
+    style="margin: 40px auto; display: block;">
+  </mat-progress-spinner>
+
+  <div *ngIf="!isLoading && student">
+
+    <!-- Hero Card -->
+    <mat-card class="hero-card">
+      <div class="hero-content">
+        <div class="avatar">{{ student.name?.charAt(0) }}</div>
+        <div class="hero-info">
+          <h1>{{ student.name }}</h1>
+          <p>{{ student.email }}</p>
+          <p>{{ student.departmentName || 'No department' }}</p>
+        </div>
+        <div class="placement-badge"
+             [class.placed]="student.isPlaced"
+             [class.unplaced]="!student.isPlaced">
+          {{ student.isPlaced ? '✅ Placed' : '🔍 Not Placed' }}
+          <span *ngIf="student.isPlaced">
+            at {{ student.placedCompanyName }}
+            ({{ student.packageOffered }} LPA)
+          </span>
+        </div>
+      </div>
+    </mat-card>
+
+    <div class="content-grid">
+
+      <!-- Profile Details -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>📋 Profile Details</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+
+          <div class="detail-row">
+            <mat-icon>badge</mat-icon>
+            <div>
+              <label>Roll Number</label>
+              <strong>{{ student.rollNumber || 'Not set' }}</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+
+          <div class="detail-row">
+            <mat-icon>group</mat-icon>
+            <div>
+              <label>Section</label>
+              <strong>{{ student.section || 'Not set' }}</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+
+          <div class="detail-row">
+            <mat-icon>school</mat-icon>
+            <div>
+              <label>CGPA</label>
+              <strong>{{ student.cgpa || 'Not set' }}</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+
+          <div class="detail-row">
+            <mat-icon>warning</mat-icon>
+            <div>
+              <label>Backlogs</label>
+              <strong>{{ student.backlogCount ?? 0 }}</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+
+          <div class="detail-row">
+            <mat-icon>description</mat-icon>
+            <div>
+              <label>Resume</label>
+              <a *ngIf="student.resumeUrl"
+                 [href]="student.resumeUrl"
+                 target="_blank" class="resume-link">
+                View Resume
+              </a>
+              <strong *ngIf="!student.resumeUrl">Not uploaded</strong>
+            </div>
+          </div>
+
+          <!-- Skills -->
+          <div class="skills-section" *ngIf="getSkills().length > 0">
+            <p><strong>Skills:</strong></p>
+            <mat-chip-set>
+              <mat-chip *ngFor="let skill of getSkills()">
+                {{ skill }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Applications -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>📝 Applications</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+
+          <div *ngIf="applications.length > 0">
+            <div class="app-item"
+                 *ngFor="let app of applications">
+              <div class="app-info">
+                <strong>{{ app.companyName }}</strong>
+                <span>Applied: {{ app.appliedAt | date:'dd MMM yyyy' }}</span>
+              </div>
+              <mat-select
+                [(ngModel)]="app.status"
+                (ngModelChange)="updateAppStatus(app, $event)"
+                class="status-select">
+                <mat-option value="APPLIED">APPLIED</mat-option>
+                <mat-option value="SHORTLISTED">SHORTLISTED</mat-option>
+                <mat-option value="SELECTED">SELECTED</mat-option>
+                <mat-option value="REJECTED">REJECTED</mat-option>
+              </mat-select>
+            </div>
+          </div>
+
+          <p *ngIf="applications.length === 0" class="empty-text">
+            No applications yet
+          </p>
+
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </div>
+</div>

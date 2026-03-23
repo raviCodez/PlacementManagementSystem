@@ -1,0 +1,175 @@
+<div class="detail-container">
+
+  <!-- Back Button -->
+  <button mat-stroked-button routerLink="/student/companies"
+          class="back-btn">
+    <mat-icon>arrow_back</mat-icon> Back to Companies
+  </button>
+
+  <!-- Loading -->
+  <mat-progress-spinner *ngIf="isLoading"
+    mode="indeterminate" diameter="48"
+    style="margin: 40px auto; display: block;">
+  </mat-progress-spinner>
+
+  <div *ngIf="!isLoading && company">
+
+    <!-- Hero Card -->
+    <mat-card class="hero-card">
+      <div class="hero-content">
+        <div class="company-logo">{{ company.name.charAt(0) }}</div>
+        <div class="hero-info">
+          <h1>{{ company.name }}</h1>
+          <p class="job-role">{{ company.jobRole }}</p>
+          <span class="status-badge status-{{ company.status.toLowerCase() }}">
+            {{ company.status }}
+          </span>
+        </div>
+        <div class="hero-actions">
+          <button mat-raised-button color="accent"
+                  *ngIf="isStudent && company.status !== 'COMPLETED'"
+                  [disabled]="isApplying"
+                  (click)="applyNow()">
+            <mat-icon>send</mat-icon>
+            {{ isApplying ? 'Applying...' : 'Apply Now' }}
+          </button>
+          <button mat-raised-button color="primary"
+                  *ngIf="isAdminOrPlacement"
+                  [routerLink]="['/company/edit', company.id]">
+            <mat-icon>edit</mat-icon> Edit
+          </button>
+        </div>
+      </div>
+    </mat-card>
+
+    <div class="detail-grid">
+
+      <!-- Key Details Card -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>📋 Drive Details</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="detail-row">
+            <mat-icon>local_atm</mat-icon>
+            <div>
+              <label>Package Offered</label>
+              <strong>{{ company.packageOffered }} LPA</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="detail-row">
+            <mat-icon>school</mat-icon>
+            <div>
+              <label>Minimum CGPA</label>
+              <strong>{{ company.minimumCgpa }}</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="detail-row">
+            <mat-icon>warning</mat-icon>
+            <div>
+              <label>Max Backlogs Allowed</label>
+<strong>{{ company.maxBacklogs || 0 }}</strong>            </div>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="detail-row">
+            <mat-icon>event</mat-icon>
+            <div>
+              <label>Drive Date</label>
+              <strong>{{ company.driveDate | date:'dd MMMM yyyy' }}</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="detail-row">
+            <mat-icon>location_on</mat-icon>
+            <div>
+              <label>Drive Location</label>
+              <strong>{{ company.driveLocation || 'TBA' }}</strong>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="detail-row">
+            <mat-icon>schedule</mat-icon>
+            <div>
+              <label>Registration Deadline</label>
+              <strong>
+                {{ company.registrationDeadline
+                   ? (company.registrationDeadline | date:'dd MMM yyyy, hh:mm a')
+                   : 'Not specified' }}
+              </strong>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Right Column -->
+      <div class="right-col">
+
+        <!-- Description -->
+        <mat-card *ngIf="company.description">
+          <mat-card-header>
+            <mat-card-title>📝 About the Company</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="description">{{ company.description }}</p>
+            <a *ngIf="company.website"
+               [href]="company.website" target="_blank"
+               class="website-link">
+              <mat-icon>language</mat-icon> Visit Website
+            </a>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Job Description -->
+        <mat-card *ngIf="company.jobDescription">
+          <mat-card-header>
+            <mat-card-title>💼 Job Description</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="description">{{ company.jobDescription }}</p>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Eligible Departments -->
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>🏛️ Eligible Departments</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-chip-set>
+              <mat-chip *ngFor="let dept of company.allowedDepartments">
+                {{ dept }}
+              </mat-chip>
+            </mat-chip-set>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Stats Card (Admin/Placement only) -->
+        <mat-card *ngIf="isAdminOrPlacement">
+          <mat-card-header>
+            <mat-card-title>📊 Application Stats</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="stats-grid">
+              <div class="stat-item blue">
+                <div class="stat-num">{{ company.totalApplications }}</div>
+                <div class="stat-lbl">Applied</div>
+              </div>
+              <div class="stat-item orange">
+                <div class="stat-num">{{ company.shortlistedCount }}</div>
+                <div class="stat-lbl">Shortlisted</div>
+              </div>
+              <div class="stat-item green">
+                <div class="stat-num">{{ company.selectedCount }}</div>
+                <div class="stat-lbl">Selected</div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,143 @@
+<div class="edit-container">
+
+  <button mat-stroked-button
+          [routerLink]="['/company', companyId]"
+          class="back-btn">
+    <mat-icon>arrow_back</mat-icon> Back to Company
+  </button>
+
+  <mat-progress-spinner *ngIf="isLoading"
+    mode="indeterminate" diameter="48"
+    style="margin: 40px auto; display: block;">
+  </mat-progress-spinner>
+
+  <mat-card *ngIf="!isLoading">
+    <mat-card-header>
+      <mat-card-title>✏️ Edit Company</mat-card-title>
+      <mat-card-subtitle>Update company details</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="editForm" (ngSubmit)="onSave()">
+
+        <div class="form-grid">
+
+          <!-- Company Name -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Company Name</mat-label>
+            <input matInput formControlName="name">
+            <mat-icon matPrefix>business</mat-icon>
+          </mat-form-field>
+
+          <!-- Job Role -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Job Role</mat-label>
+            <input matInput formControlName="jobRole">
+            <mat-icon matPrefix>work</mat-icon>
+          </mat-form-field>
+
+          <!-- Package -->
+          <mat-form-field appearance="outline">
+            <mat-label>Package (LPA)</mat-label>
+            <input matInput formControlName="packageOffered" type="number">
+            <mat-icon matPrefix>local_atm</mat-icon>
+          </mat-form-field>
+
+          <!-- Min CGPA -->
+          <mat-form-field appearance="outline">
+            <mat-label>Minimum CGPA</mat-label>
+            <input matInput formControlName="minimumCgpa" type="number" step="0.1">
+            <mat-icon matPrefix>school</mat-icon>
+          </mat-form-field>
+
+          <!-- Max Backlogs -->
+          <mat-form-field appearance="outline">
+            <mat-label>Max Backlogs</mat-label>
+            <input matInput formControlName="maxBacklogs" type="number">
+            <mat-icon matPrefix>warning</mat-icon>
+          </mat-form-field>
+
+          <!-- Drive Date -->
+          <mat-form-field appearance="outline">
+            <mat-label>Drive Date</mat-label>
+            <input matInput formControlName="driveDate" type="date">
+            <mat-icon matPrefix>event</mat-icon>
+          </mat-form-field>
+
+          <!-- Drive Location -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Drive Location</mat-label>
+            <input matInput formControlName="driveLocation">
+            <mat-icon matPrefix>location_on</mat-icon>
+          </mat-form-field>
+
+          <!-- Website -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Website</mat-label>
+            <input matInput formControlName="website">
+            <mat-icon matPrefix>language</mat-icon>
+          </mat-form-field>
+
+          <!-- Status -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option *ngFor="let s of statusOptions" [value]="s">
+                {{ s }}
+              </mat-option>
+            </mat-select>
+            <mat-icon matPrefix>toggle_on</mat-icon>
+          </mat-form-field>
+
+          <!-- Description -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Company Description</mat-label>
+            <textarea matInput formControlName="description"
+                      rows="3"></textarea>
+          </mat-form-field>
+
+          <!-- Job Description -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Job Description</mat-label>
+            <textarea matInput formControlName="jobDescription"
+                      rows="3"></textarea>
+          </mat-form-field>
+
+            <!-- Registration Deadline -->
+            <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Registration Deadline</mat-label>
+            <input matInput formControlName="registrationDeadline" type="datetime-local">
+            <mat-icon matPrefix>schedule</mat-icon>
+            </mat-form-field>
+
+            <!-- Eligible Departments -->
+            <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Eligible Departments</mat-label>
+            <mat-select formControlName="allowedDepartmentIds" multiple>
+                <mat-option *ngFor="let dept of departments" [value]="dept.id">
+                {{ dept.name }}
+                </mat-option>
+            </mat-select>
+            <mat-icon matPrefix>school</mat-icon>
+            </mat-form-field>
+
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button mat-stroked-button type="button"
+                  [routerLink]="['/company', companyId]">
+            Cancel
+          </button>
+          <button mat-raised-button color="primary"
+                  type="submit" [disabled]="isSaving">
+            <mat-icon>save</mat-icon>
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+</div>

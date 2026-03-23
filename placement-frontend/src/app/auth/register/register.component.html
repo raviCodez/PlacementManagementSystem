@@ -1,0 +1,76 @@
+<div class="register-container">
+  <mat-card class="register-card">
+
+    <mat-card-header>
+      <mat-card-title>🎓 Create Account</mat-card-title>
+      <mat-card-subtitle>Join the Placement Portal</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+
+        <!-- Name -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Full Name</mat-label>
+          <input matInput formControlName="name" placeholder="John Doe">
+          <mat-icon matPrefix>person</mat-icon>
+          <mat-error>{{ getError('name') }}</mat-error>
+        </mat-form-field>
+
+        <!-- Email -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email"
+                 type="email" placeholder="you@college.edu">
+          <mat-icon matPrefix>email</mat-icon>
+          <mat-error>{{ getError('email') }}</mat-error>
+        </mat-form-field>
+
+        <!-- Password -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password"
+                 [type]="hidePassword ? 'password' : 'text'">
+          <mat-icon matPrefix>lock</mat-icon>
+          <button mat-icon-button matSuffix type="button"
+                  (click)="hidePassword = !hidePassword">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error>{{ getError('password') }}</mat-error>
+        </mat-form-field>
+
+        <!-- Role -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Role</mat-label>
+          <mat-select formControlName="role">
+            <mat-option *ngFor="let r of roles" [value]="r.value">
+              {{ r.label }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matPrefix>badge</mat-icon>
+        </mat-form-field>
+
+        <!-- Messages -->
+        <div class="error-box"   *ngIf="errorMessage">⚠️ {{ errorMessage }}</div>
+        <div class="success-box" *ngIf="successMessage">✅ {{ successMessage }}</div>
+
+        <!-- Submit -->
+        <button mat-raised-button color="primary"
+                type="submit" class="full-width submit-btn"
+                [disabled]="isLoading">
+          <mat-spinner diameter="20" *ngIf="isLoading"></mat-spinner>
+          <span *ngIf="!isLoading">Register</span>
+        </button>
+
+      </form>
+    </mat-card-content>
+
+    <mat-card-actions>
+      <p class="login-link">
+        Already have an account?
+        <a routerLink="/login">Login here</a>
+      </p>
+    </mat-card-actions>
+
+  </mat-card>
+</div>

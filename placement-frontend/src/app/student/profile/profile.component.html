@@ -1,0 +1,152 @@
+<div class="profile-container">
+  <h2 class="page-title">👤 My Profile</h2>
+
+  <mat-progress-spinner *ngIf="isLoading"
+    mode="indeterminate" diameter="48"
+    style="margin: 40px auto; display: block;">
+  </mat-progress-spinner>
+
+  <div *ngIf="!isLoading && profile" class="profile-grid">
+
+    <!-- Profile Info Card -->
+    <mat-card class="info-card">
+      <mat-card-header>
+<div class="avatar">{{ profile.name.charAt(0) }}</div>        <div class="info-header">
+          <mat-card-title>{{ profile.name }}</mat-card-title>
+          <mat-card-subtitle>{{ profile.email }}</mat-card-subtitle>
+          <mat-card-subtitle>{{ profile.departmentName }}</mat-card-subtitle>
+        </div>
+      </mat-card-header>
+
+      <mat-divider></mat-divider>
+
+      <mat-card-content class="info-list">
+        <div class="info-row">
+          <mat-icon>badge</mat-icon>
+          <span>Roll No: <strong>{{ profile.rollNumber || 'Not set' }}</strong></span>
+        </div>
+        <div class="info-row">
+          <mat-icon>school</mat-icon>
+          <span>CGPA: <strong>{{ profile.cgpa || 'Not set' }}</strong></span>
+        </div>
+        <div class="info-row">
+          <mat-icon>warning</mat-icon>
+          <span>Backlogs: <strong>{{ profile.backlogCount || 0 }}</strong></span>
+        </div>
+        <div class="info-row">
+          <mat-icon>work</mat-icon>
+          <span>
+            Status:
+            <strong [class.placed]="profile.isPlaced"
+                    [class.unplaced]="!profile.isPlaced">
+              {{ profile.isPlaced ? '✅ Placed' : '🔍 Not Placed' }}
+            </strong>
+          </span>
+        </div>
+        <div class="info-row" *ngIf="profile.isPlaced">
+          <mat-icon>business</mat-icon>
+          <span>Company: <strong>{{ profile.placedCompanyName }}</strong></span>
+        </div>
+        <div class="info-row" *ngIf="profile.isPlaced">
+          <mat-icon>local_atm</mat-icon>
+          <span>Package: <strong>{{ profile.packageOffered }} LPA</strong></span>
+        </div>
+      </mat-card-content>
+
+      <!-- Skills -->
+      <mat-card-content *ngIf="getSkillsArray().length > 0">
+        <p><strong>Skills:</strong></p>
+        <mat-chip-set>
+          <mat-chip *ngFor="let skill of getSkillsArray()">
+            {{ skill }}
+          </mat-chip>
+        </mat-chip-set>
+      </mat-card-content>
+
+      <!-- Resume -->
+      <mat-card-content>
+        <p><strong>Resume:</strong></p>
+        <div class="resume-section">
+          <input type="file" accept=".pdf"
+                 (change)="onFileSelected($event)" #fileInput hidden>
+          <button mat-stroked-button (click)="fileInput.click()">
+            <mat-icon>upload_file</mat-icon>
+            {{ selectedFile ? selectedFile.name : 'Choose PDF' }}
+          </button>
+          <button mat-raised-button color="accent"
+                  [disabled]="!selectedFile || isUploading"
+                  (click)="onUploadResume()">
+            {{ isUploading ? 'Uploading...' : 'Upload Resume' }}
+          </button>
+        </div>
+        <a *ngIf="profile.resumeUrl"
+           [href]="profile.resumeUrl" target="_blank"
+           class="resume-link">
+          <mat-icon>description</mat-icon> View Current Resume
+        </a>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Edit Profile Form Card -->
+    <mat-card class="edit-card">
+      <mat-card-header>
+        <mat-card-title>✏️ Update Profile</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="profileForm" (ngSubmit)="onSave()">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>CGPA (0 - 10)</mat-label>
+            <input matInput formControlName="cgpa" type="number" step="0.01">
+            <mat-icon matPrefix>school</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>10th Marks (%)</mat-label>
+            <input matInput formControlName="marks10th" type="number">
+            <mat-icon matPrefix>grade</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>12th Marks (%)</mat-label>
+            <input matInput formControlName="marks12th" type="number">
+            <mat-icon matPrefix>grade</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Backlog Count</mat-label>
+            <input matInput formControlName="backlogCount" type="number">
+            <mat-icon matPrefix>warning</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Section</mat-label>
+            <input matInput formControlName="section" placeholder="e.g. A">
+            <mat-icon matPrefix>group</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Graduation Year</mat-label>
+            <input matInput formControlName="graduationYear" type="number">
+            <mat-icon matPrefix>event</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Skills (comma separated)</mat-label>
+            <input matInput formControlName="skills"
+                   placeholder="Java, Spring Boot, MySQL">
+            <mat-icon matPrefix>build</mat-icon>
+          </mat-form-field>
+
+          <button mat-raised-button color="primary"
+                  type="submit" class="full-width"
+                  [disabled]="isSaving">
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
+
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+</div>

@@ -1,0 +1,174 @@
+<div class="admin-container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>🛡️ Admin Dashboard</h1>
+      <p>Complete placement overview</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary"
+              routerLink="/admin/students">
+        <mat-icon>people</mat-icon> Manage Students
+      </button>
+      <button mat-raised-button color="accent"
+              routerLink="/admin/applications">
+        <mat-icon>assignment</mat-icon> Applications
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <mat-progress-bar mode="indeterminate" *ngIf="isLoading">
+  </mat-progress-bar>
+
+  <div *ngIf="!isLoading && dashboard">
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+
+      <mat-card class="stat-card blue">
+        <mat-icon>people</mat-icon>
+        <div class="stat-number">{{ dashboard.totalStudents }}</div>
+        <div class="stat-label">Total Students</div>
+      </mat-card>
+
+      <mat-card class="stat-card green">
+        <mat-icon>check_circle</mat-icon>
+        <div class="stat-number">{{ dashboard.totalPlaced }}</div>
+        <div class="stat-label">Placed Students</div>
+      </mat-card>
+
+      <mat-card class="stat-card orange">
+        <mat-icon>percent</mat-icon>
+        <div class="stat-number">{{ dashboard.placementPercentage }}%</div>
+        <div class="stat-label">Placement Rate</div>
+      </mat-card>
+
+      <mat-card class="stat-card purple">
+        <mat-icon>business</mat-icon>
+        <div class="stat-number">{{ dashboard.upcomingCompanies }}</div>
+        <div class="stat-label">Upcoming Drives</div>
+      </mat-card>
+
+    </div>
+
+    <!-- Middle Row -->
+    <div class="middle-row">
+
+      <!-- Department-wise Placement -->
+      <mat-card class="dept-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>bar_chart</mat-icon>
+            Department-wise Placement
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="dept-list">
+            <div class="dept-item"
+                 *ngFor="let item of departmentEntries">
+              <span class="dept-name">{{ item.key }}</span>
+              <div class="progress-wrap">
+                <mat-progress-bar
+                  mode="determinate"
+                  [value]="(item.value / dashboard.totalStudents) * 100">
+                </mat-progress-bar>
+              </div>
+              <span class="dept-count">{{ item.value }}</span>
+            </div>
+            <p *ngIf="departmentEntries.length === 0" class="empty-text">
+              No data yet
+            </p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Top Hiring Companies -->
+      <mat-card class="company-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>emoji_events</mat-icon>
+            Top Hiring Companies
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="company-list">
+            <div class="company-item"
+                 *ngFor="let item of companyEntries; let i = index">
+              <span class="rank">{{ i + 1 }}</span>
+              <span class="company-name">{{ item.key }}</span>
+              <span class="hire-count">{{ item.value }} hired</span>
+            </div>
+            <p *ngIf="companyEntries.length === 0" class="empty-text">
+              No placements yet
+            </p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <!-- Recently Added Companies -->
+    <mat-card class="recent-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>business_center</mat-icon>
+          Recently Added Companies
+        </mat-card-title>
+        <div class="card-actions">
+          <button mat-stroked-button routerLink="/company">
+            View All
+          </button>
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="recent-companies"
+             *ngIf="dashboard.recentlyAddedCompanies?.length > 0">
+          <div class="recent-item"
+               *ngFor="let c of dashboard.recentlyAddedCompanies">
+            <div class="recent-logo">{{ c.name.charAt(0) }}</div>
+            <div class="recent-info">
+              <strong>{{ c.name }}</strong>
+              <span>{{ c.jobRole }} • {{ c.packageOffered }} LPA</span>
+            </div>
+            <span class="status-chip status-{{c.status.toLowerCase()}}">
+              {{ c.status }}
+            </span>
+          </div>
+        </div>
+        <p *ngIf="!dashboard.recentlyAddedCompanies?.length"
+           class="empty-text">
+          No companies added yet
+        </p>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Recent Notifications -->
+    <mat-card class="notif-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>notifications</mat-icon>
+          Recent Notifications
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="dashboard.recentNotifications?.length > 0">
+          <div class="notif-item"
+               *ngFor="let n of dashboard.recentNotifications">
+            <mat-icon class="notif-icon">campaign</mat-icon>
+            <div class="notif-content">
+              <strong>{{ n.title }}</strong>
+              <span>{{ n.createdAt | date:'dd MMM yyyy, hh:mm a' }}</span>
+            </div>
+          </div>
+        </div>
+        <p *ngIf="!dashboard.recentNotifications?.length"
+           class="empty-text">
+          No notifications yet
+        </p>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+</div>
